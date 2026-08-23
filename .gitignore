@@ -4,3 +4,8 @@ dist-ssr
 .DS_Store
 *.local
 .vite
+
+# local env — copy .env.example to .env.local
+.env
+.env.*.local
+.env.local

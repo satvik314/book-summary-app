@@ -8,13 +8,42 @@ argument.
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173
-npm run build    # production bundle in dist/
-npm run preview  # serve the built bundle
+cp .env.example .env.local   # Supabase project URL + publishable key
+npm run dev                  # http://localhost:5173
+npm run build                # production bundle in dist/
+npm run preview              # serve the built bundle
 ```
 
-No backend and no third-party requests — the content ships with the app and the two typefaces
-are served from `public/fonts`.
+The content ships with the app and the two typefaces are served from `public/fonts`, so the
+only network calls the app makes are to Supabase. Without `.env.local` the app still runs —
+reading works exactly the same, and the account features switch themselves off.
+
+## Accounts and data
+
+Sign-up is email + password through Supabase Auth, in the project **inkwell**. An account is
+optional: it saves a shelf and remembers the idea you stopped on.
+
+| Table | Holds |
+| --- | --- |
+| `gist_profiles` | one row per account — email and display name, written from the client on first sign-in |
+| `gist_shelf_items` | `(user_id, book_id)` — the books you saved |
+| `gist_progress` | `(user_id, book_id)` — the idea you reached, and whether you finished |
+
+Every table has row level security on, with policies scoped to `auth.uid()`, so a signed-in
+reader can only ever see and write their own rows. The schema lives in
+`supabase/migrations/` and is already applied to the project.
+
+Two things to know about the setup:
+
+- The tables are `gist_`-prefixed because `inkwell` also holds an unrelated table. Nothing
+  touches `auth.users` — no trigger — so sign-ups for anything else sharing that project are
+  unaffected.
+- The values in `.env.example` are publishable by design: the key only ever reaches the
+  browser and RLS is what actually protects the data. Real secrets do not belong here.
+
+If Supabase has **Confirm email** switched on for the project, sign-up returns no session and
+the form says to check your inbox; switch it off in Authentication → Providers → Email to have
+sign-up log people straight in.
 
 ## What is in it
 
@@ -53,9 +82,16 @@ src/
     Cover.jsx            the cover block, shared by shelf and book page
     BookPage.jsx         cover, entry points, ideas list, chapter cards
     Reader.jsx           idea deck and chapter accordion
-  hooks/useHashRoute.js  '#/', '#/book/:id', '#/book/:id/ideas[/:n]', '#/book/:id/chapters'
+    AuthPage.jsx         sign up / sign in
+    ShelfPage.jsx        still reading, and the books you saved
+  context/
+    AuthContext.jsx      session, sign up / in / out, profile upsert
+    ShelfContext.jsx     shelf and progress, loaded once and written optimistically
+  lib/supabase.js        client, configured flag, readable error messages
+  hooks/useHashRoute.js  '#/', '#/auth', '#/shelf', '#/book/:id', '#/book/:id/ideas[/:n]', …
   styles.css             design tokens, component classes, screens
 public/fonts/            Caprasimo and Figtree (woff2, latin + latin-ext)
+supabase/migrations/     the schema above
 ```
 
 ## Design
@@ -68,6 +104,8 @@ everything below is built from them.
 
 Details worth knowing about:
 
+- Progress is written a beat after you settle on an idea, so holding an arrow key down does
+  not write a row per frame; shelf writes are optimistic and roll back if the server refuses.
 - The reader's idea index lives in the URL, so an idea is linkable; stepping replaces the
   history entry, so Back leaves the deck rather than walking it backwards.
 - ← and → move through ideas, and the card takes horizontal swipes on touch.

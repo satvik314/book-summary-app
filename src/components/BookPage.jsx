@@ -1,7 +1,15 @@
+import { useAuth } from '../context/AuthContext.jsx'
+import { useShelf } from '../context/ShelfContext.jsx'
 import { navigate } from '../hooks/useHashRoute.js'
 import Cover from './Cover.jsx'
 
 export default function BookPage({ book }) {
+  const { enabled, user } = useAuth()
+  const { isSaved, toggleShelf, progress } = useShelf()
+  const mark = progress[book.id]
+  const resumeAt = mark && !mark.finished ? Math.min(mark.idea_index, book.ideas.length - 1) : null
+  const saved = isSaved(book.id)
+
   return (
     <main className="page">
       <button className="btn btn-ghost" onClick={() => navigate('/')} style={{ marginBottom: 26 }}>
@@ -11,8 +19,13 @@ export default function BookPage({ book }) {
       <div className="book">
         <aside className="book__aside">
           <Cover book={book} className="book__cover" />
-          <button className="btn btn-primary btn-block" onClick={() => navigate(`/book/${book.id}/ideas`)}>
-            Read the key ideas
+          <button
+            className="btn btn-primary btn-block"
+            onClick={() => navigate(`/book/${book.id}/ideas${resumeAt ? `/${resumeAt}` : ''}`)}
+          >
+            {resumeAt
+              ? `Continue — idea ${resumeAt + 1} of ${book.ideas.length}`
+              : 'Read the key ideas'}
           </button>
           <button
             className="btn btn-secondary btn-block"
@@ -20,6 +33,14 @@ export default function BookPage({ book }) {
           >
             Chapter by chapter
           </button>
+          {enabled && (
+            <button
+              className={`btn btn-secondary btn-block ${saved ? 'is-saved' : ''}`}
+              onClick={() => (user ? toggleShelf(book.id) : navigate('/auth'))}
+            >
+              {saved ? '✓ On your shelf' : 'Save to shelf'}
+            </button>
+          )}
         </aside>
 
         <div className="book__main">
@@ -27,6 +48,7 @@ export default function BookPage({ book }) {
             <span className="tag tag-accent">{book.categoryName}</span>
             <span className="tag tag-neutral">{book.year}</span>
             <span className="tag tag-accent-2">{book.minutes} read</span>
+            {mark?.finished && <span className="tag tag-accent-2">Finished</span>}
           </div>
           <h1>{book.title}</h1>
           <p className="book__author">{book.author}</p>

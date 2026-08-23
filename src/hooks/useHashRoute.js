@@ -2,12 +2,16 @@ import { useEffect, useState } from 'react'
 
 /**
  * Tiny hash router — no dependency, and the browser back button keeps working.
- * Routes: '#/', '#/book/:id', '#/book/:id/ideas[/:index]', '#/book/:id/chapters'.
+ * Routes: '#/', '#/auth', '#/shelf', '#/book/:id',
+ * '#/book/:id/ideas[/:index]', '#/book/:id/chapters'.
  */
 const BOOK = /^\/book\/([\w-]+)(?:\/(ideas|chapters))?(?:\/(\d+))?$/
 
 function parse() {
-  const match = BOOK.exec(window.location.hash.replace(/^#/, ''))
+  const hash = window.location.hash.replace(/^#/, '')
+  if (hash === '/auth') return { name: 'auth' }
+  if (hash === '/shelf') return { name: 'shelf' }
+  const match = BOOK.exec(hash)
   if (!match) return { name: 'library' }
   const [, bookId, mode, index] = match
   if (!mode) return { name: 'book', bookId }

@@ -1,11 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import { navigate } from '../hooks/useHashRoute.js'
+import { useShelf } from '../context/ShelfContext.jsx'
 
 function IdeaDeck({ book, index }) {
   const total = book.ideas.length
   const current = book.ideas[Math.min(index, total - 1)]
   const isLast = index >= total - 1
   const touchX = useRef(null)
+  const { saveProgress } = useShelf()
+
+  // Record the place a beat after the reader settles, so holding an arrow key
+  // down does not write a row per frame.
+  useEffect(() => {
+    const timer = setTimeout(() => saveProgress(book.id, index), 700)
+    return () => clearTimeout(timer)
+  }, [book.id, index, saveProgress])
 
   const go = (next) => {
     const clamped = Math.min(total - 1, Math.max(0, next))
@@ -62,7 +71,11 @@ function IdeaDeck({ book, index }) {
           </p>
           <button
             className="btn btn-primary"
-            onClick={() => (isLast ? navigate(`/book/${book.id}`) : go(index + 1))}
+            onClick={() => {
+              if (!isLast) return go(index + 1)
+              saveProgress(book.id, index, true)
+              navigate(`/book/${book.id}`)
+            }}
           >
             {isLast ? 'Finish' : 'Next idea →'}
           </button>

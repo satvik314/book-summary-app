@@ -1,9 +1,8 @@
-# Bindery — interactive book summaries
+# Gist — book summaries
 
-A small Vite + React app for reading the big ideas from popular books. Three categories, two
-books each, and every book is one **five-slide interactive summary** plus **three deep-dive
-questions**. The whole thing is presented as a book: a two-page spread, a gutter shadow, page
-edges, folios, and a leaf that turns when you move between pages.
+A Vite + React app for reading the books you meant to finish. Every summary comes two ways: a
+short deck of **key ideas** you page through, or a **chapter-by-chapter** walk through the
+argument.
 
 ## Running it
 
@@ -14,67 +13,68 @@ npm run build    # production bundle in dist/
 npm run preview  # serve the built bundle
 ```
 
-No backend, no API keys — the content ships with the app and reading state lives in
-`localStorage`.
+No backend and no third-party requests — the content ships with the app and the two typefaces
+are served from `public/fonts`.
 
 ## What is in it
 
-| Category | Books |
-| --- | --- |
-| Mind & Habits | *Atomic Habits* (James Clear) · *Thinking, Fast and Slow* (Daniel Kahneman) |
-| Business & Innovation | *Zero to One* (Peter Thiel) · *The Lean Startup* (Eric Ries) |
-| Philosophy & Meaning | *Meditations* (Marcus Aurelius) · *Man's Search for Meaning* (Viktor Frankl) |
+Three shelves of five titles each. Two summaries are written:
 
-Each book has 5 slides + 3 deep-dive questions — 30 slides and 18 questions in total.
+| Shelf | Written up | Metadata only |
+| --- | --- | --- |
+| Business | *Zero to One*, *The Lean Startup* | Good to Great · The Hard Thing About Hard Things · The Innovator's Dilemma |
+| Psychology | — | Thinking, Fast and Slow · Influence · Mindset · Flow · Predictably Irrational |
+| Biography | — | Shoe Dog · Steve Jobs · Long Walk to Freedom · The Diary of a Young Girl · Einstein |
 
-## The five interaction types
+Books without a summary still appear on the shelf — that is where the design puts them — but
+they carry a `Soon` mark, show their author instead of a chapter count, and cannot be opened.
+Writing one is a data change: give the book a `blurb`, three `ideas` and four `chapters` in
+`src/data/books.js` and drop the `soon` flag.
 
-Every slide carries exactly one interaction, and each book uses all five:
+## Screens
 
-| Type | What the reader does |
-| --- | --- |
-| `quiz` | Picks an answer and gets tailored feedback for the option chosen |
-| `flip` | Taps cards that turn over in 3D to reveal the idea behind a term |
-| `slider` | Drags through labelled stops — a year of compounding, a widening frame, a distribution |
-| `steps` | Reveals a sequence one beat at a time |
-| `checklist` | Ticks off a practice; a closing note appears when the list is complete |
-
-Adding a slide is a data change only — drop an object into `src/data/books.js` with one of the
-five interaction shapes and it renders.
+- **Library** — hero, then a shelf per category: five covers on a rotating five-colour palette,
+  each with its number, title, author and a caption line.
+- **Book** — sticky cover and the two entry points, beside the blurb, the three key ideas with
+  their teasers, and the four chapters as cards. Any idea or chapter opens the reader at that
+  spot.
+- **Reader** — one surface for both modes, switched by the segmented control. *Key ideas* is a
+  deck: a progress bar per idea, one big card, and the next idea's title shown before you get
+  to it. *Chapters* is an accordion, first chapter open.
 
 ## Layout
 
 ```
 src/
-  data/books.js          content — categories → books → slides[5] + deepDive[3]
+  data/books.js          content — categories → books → ideas[3] + chapters[4]
   components/
-    Shelf.jsx            home: category rows of book covers, with resume state
-    Reader.jsx           the book: spread, page-turn, keyboard nav, progress
-    Interaction.jsx      the five interaction renderers
-    DeepDive.jsx         accordion of questions, notes, and a perspective to reveal
-  hooks/
-    useHashRoute.js      tiny hash router (`#/`, `#/book/:id`) so Back works
-    useLocalStorage.js   persistence that degrades gracefully when storage is blocked
-  styles.css             design tokens and all styling
+    TopNav.jsx           brand, links, avatar
+    Library.jsx          hero and the three shelves
+    Cover.jsx            the cover block, shared by shelf and book page
+    BookPage.jsx         cover, entry points, ideas list, chapter cards
+    Reader.jsx           idea deck and chapter accordion
+  hooks/useHashRoute.js  '#/', '#/book/:id', '#/book/:id/ideas[/:n]', '#/book/:id/chapters'
+  styles.css             design tokens, component classes, screens
+public/fonts/            Caprasimo and Figtree (woff2, latin + latin-ext)
 ```
 
 ## Design
 
-Purple on white paper. Ink and furniture come from a token set in `styles.css`
-(`--plum-950` through `--mist`), with Fraunces for display type and Inter for text.
+Ported from the Gist design file: blush `#f8e3e1` ground, `#ebddc5` reading surface, rust
+`#c67139` accent and an olive second accent, with Caprasimo for display and Figtree for text.
+The tokens at the top of `styles.css` are the source of truth — the neutral, accent and
+accent-2 ramps, the three radii and the three shadows all come from the design system, and
+everything below is built from them.
 
 Details worth knowing about:
 
-- The spread is a real two-column layout with a gutter gradient and stacked page edges; below
-  860px it stacks and the navigation becomes a floating bar.
-- Page turns animate a leaf rotating about the spine; everything animated is disabled under
-  `prefers-reduced-motion`.
-- Reading position, checklist ticks, and deep-dive notes persist per book in `localStorage`,
-  so the shelf shows "Continue — page 3 of 6" when you come back.
-- Arrow keys turn pages, Escape returns to the shelf, and form controls keep their own key
-  handling so the slider still works with a keyboard.
+- The reader's idea index lives in the URL, so an idea is linkable; stepping replaces the
+  history entry, so Back leaves the deck rather than walking it backwards.
+- ← and → move through ideas, and the card takes horizontal swipes on touch.
+- The five-across shelf becomes three, then two; the book page collapses to a single column;
+  animation is dropped under `prefers-reduced-motion`.
 
 ## A note on the content
 
 The summaries are original interpretations written for this app, not extracts from the books.
-Quotations are short and attributed. Read the originals — they are better.
+Read the originals — they are better.

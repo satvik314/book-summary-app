@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react'
 
 /**
- * Tiny hash router so the browser back button works without pulling in a
- * routing dependency. Routes: '#/' (shelf) and '#/book/:bookId'.
+ * Tiny hash router — no dependency, and the browser back button keeps working.
+ * Routes: '#/', '#/book/:id', '#/book/:id/ideas[/:index]', '#/book/:id/chapters'.
  */
+const BOOK = /^\/book\/([\w-]+)(?:\/(ideas|chapters))?(?:\/(\d+))?$/
+
 function parse() {
-  const hash = window.location.hash.replace(/^#/, '')
-  const match = hash.match(/^\/book\/([\w-]+)$/)
-  return match ? { name: 'reader', bookId: match[1] } : { name: 'shelf' }
+  const match = BOOK.exec(window.location.hash.replace(/^#/, ''))
+  if (!match) return { name: 'library' }
+  const [, bookId, mode, index] = match
+  if (!mode) return { name: 'book', bookId }
+  return { name: 'reader', bookId, mode, ideaIndex: index ? Number(index) : 0 }
 }
 
 export function useHashRoute() {
@@ -22,6 +26,15 @@ export function useHashRoute() {
   return route
 }
 
-export function navigate(path) {
-  window.location.hash = path
+/**
+ * `replace` swaps the current entry instead of adding one — used when stepping
+ * through ideas, so Back returns to the book rather than walking the deck.
+ */
+export function navigate(path, { replace = false } = {}) {
+  if (!replace) {
+    window.location.hash = path
+    return
+  }
+  window.history.replaceState(null, '', `#${path}`)
+  window.dispatchEvent(new Event('hashchange'))
 }
